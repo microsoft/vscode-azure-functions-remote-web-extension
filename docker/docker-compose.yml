@@ -1,0 +1,21 @@
+services:
+  # vscodedev:
+  #   build: 
+  #     context: .
+  #     dockerfile: nodejs-server/Dockerfile
+  #   ports:
+  #     - "8001:8001"
+  #     - "8000:8000"
+  #     - "8080:8080"
+  #     - "9091:9091"
+  #     - "443:443"
+  #     - "22:22"
+  #     - "80:80"
+  #   volumes:
+  #     - /mnt/e/projects/vscode-azure-functions-remote-web/src/files/HttpFuncApp:/existingapp
+  # apiserver:
+  #   build: 
+  #     context: .
+  #     dockerfile: api-server/Dockerfile
+  #   ports:
+  #     - "443:443"

@@ -1,0 +1,14 @@
+{
+  "name": "limelight-janitor",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "test": "echo \"No tests yet...\""
+  },
+  "author": "Microsoft",
+  "dependencies": {
+    "@azure/arm-appcontainers": "^1.0.0",
+    "@azure/identity": "^2.1.0",
+    "axios": "^0.27.2"
+  }
+}
