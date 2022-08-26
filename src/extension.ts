@@ -7,7 +7,7 @@ import { checkForUpdates } from './web/launcher';
 export async function activate(context: vscode.ExtensionContext) {
     function getMyWebviewContent(webview: vscode.Webview, context: any): string { 
         let html: string = ``;
-        //test change
+        
         // construct your HTML code
         html += `
                 <!DOCTYPE html>
