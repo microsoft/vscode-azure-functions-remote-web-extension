@@ -62,8 +62,8 @@ const cachedWorkerHostname = "workerHostname";
 const cachedTunnelDefinition = "tunnel-def";
 
 const containerServiceHostname =
-  // "https://limelight-api-server.salmonfield-d8375633.centralus.azurecontainerapps.io:443";
-  "https://limelight-container-service.mangostone-a0af9f1f.centralus.azurecontainerapps.io:443";
+  "https://limelight-api-server.salmonfield-d8375633.centralus.azurecontainerapps.io:443";
+// "https://limelight-container-service.mangostone-a0af9f1f.centralus.azurecontainerapps.io:443";
 const USER_AGENT = "vscode.dev.azure-functions-remote-web";
 const AzureAuthManager = require("./azureAuthUtility.js");
 
@@ -115,12 +115,16 @@ export default async function doRoute(
     // path: '/root/.npm'
   });
 
+  console.log("Before getting AAD tokens");
+
   // Get aad tokens
   const azureAuthManager = new AzureAuthManager(extra.microsoftAuthentication);
-  const basisAccessToken = await azureAuthManager.getAccessToken(BASIS_SCOPES);
   const managementAccessToken = await azureAuthManager.getAccessToken(
     MANAGEMENT_SCOPES
   );
+  const basisAccessToken = await azureAuthManager.getAccessToken(BASIS_SCOPES);
+
+  console.log("after getting AAD tokens");
 
   // Parse function app details from url
   const { subscription, resourceGroup, functionAppName, username } =
@@ -133,8 +137,11 @@ export default async function doRoute(
     managementAccessToken
   );
 
-  // Only for if the function app is a new app
-  let storageAccountConnectionString, storageAccountKey;
+  // Only get connection string if function app already exists
+  let storageAccountConnectionString,
+    storageAccountName,
+    storageAccountKey,
+    srcURL;
   if (!isNewApp) {
     console.log(`Function app ${functionAppName} is an existing app`);
     storageAccountConnectionString =
@@ -144,9 +151,14 @@ export default async function doRoute(
         functionAppName,
         managementAccessToken
       );
-    storageAccountKey = parseStorageAccountKey(
-      storageAccountConnectionString,
-      storageAccountKey
+    srcURL = await getFunctionAppSrcURL(
+      subscription,
+      resourceGroup,
+      functionAppName,
+      managementAccessToken
+    );
+    [storageAccountName, storageAccountKey] = parseStorageAccountDetails(
+      storageAccountConnectionString
     );
   }
 
@@ -169,7 +181,11 @@ export default async function doRoute(
 
     await pRetry(
       async () => {
-        tunnel = await Basis.createTunnelWithPort(basisAccessToken, tunnelPort);
+        tunnel = await Basis.createTunnelWithPort(
+          basisAccessToken,
+          `${functionAppName}-${username}-${new Date().getMilliseconds()}`,
+          tunnelPort
+        );
         localStorage.setItem(cachedTunnelDefinition, JSON.stringify(tunnel));
       },
       {
@@ -200,6 +216,8 @@ export default async function doRoute(
         {
           // TODO: pass in custom container app name, if not exist, create one with the name otherwise return the info
           calledWhen: new Date().toISOString(),
+          storageName: storageAccountName,
+          accountKey: storageAccountKey,
         }
       );
       console.log("Limelight session is created..");
@@ -219,6 +237,9 @@ export default async function doRoute(
         {
           username,
           hostname: workerHostname,
+          connStr: storageAccountConnectionString,
+          accountKey: storageAccountKey,
+          srcURL: srcURL,
         }
       );
       console.log(`Cx function app files are synced: ${res}`);
@@ -354,14 +375,14 @@ class FailingWebSocketFactory implements IWebSocketFactory {
   }
 }
 
-function parseStorageAccountKey(
-  storageAccountConnectionString: any,
-  storageAccountKey: any
-) {
+function parseStorageAccountDetails(storageAccountConnectionString: any) {
   const connectionStringParts = storageAccountConnectionString.split(";");
-  const accountKeyParts = connectionStringParts[2].split("=");
-  storageAccountKey = accountKeyParts[1];
-  return storageAccountKey;
+  const accountNameParts = connectionStringParts[1].split("=");
+  const accountKeyParts = connectionStringParts[2].substring(
+    connectionStringParts[2].indexOf("=") + 1
+  );
+
+  return [accountNameParts[1], accountKeyParts];
 }
 
 function parseFunctionAppDetails(workspaceOrFolderUri: URI) {
@@ -395,6 +416,9 @@ async function getFunctionAppStorageAccountConnectionString(
   functionAppName: string,
   managementAccessToken: any
 ) {
+  console.log("HERE");
+  console.log("Bearer " + managementAccessToken);
+  // SUBSCRIPTION SHOULD BE SUBSCRIPTION ID
   const url = `https://management.azure.com/subscriptions/${subscription}/resourceGroups/${resourceGroup}/providers/Microsoft.Web/sites/${functionAppName}/config/appsettings/list?api-version=2021-02-01`;
   console.log(`Retrieving function app storage account connection string...`);
   const { data } = await axios.post(url, "", {
@@ -405,6 +429,25 @@ async function getFunctionAppStorageAccountConnectionString(
   const connStr = data["properties"]["AzureWebJobsStorage"];
   console.log(`Function app storage account connection string retrieved.`);
   return connStr;
+}
+
+async function getFunctionAppSrcURL(
+  subscription: string,
+  resourceGroup: string,
+  functionAppName: string,
+  managementAccessToken: any
+) {
+  // SUBSCRIPTION SHOULD BE SUBSCRIPTION ID
+  const url = `https://management.azure.com/subscriptions/${subscription}/resourceGroups/${resourceGroup}/providers/Microsoft.Web/sites/${functionAppName}/config/appsettings/list?api-version=2021-02-01`;
+  console.log(`Retrieving function app src url...`);
+  const { data } = await axios.post(url, "", {
+    headers: {
+      Authorization: "Bearer " + managementAccessToken,
+    },
+  });
+  const srcURL = data["properties"]["WEBSITE_RUN_FROM_PACKAGE"];
+  console.log(`Function app source URL retrieved. ` + srcURL);
+  return srcURL;
 }
 
 async function getMicrosoftAuthSessions(
