@@ -107,6 +107,8 @@ export default async function doRoute(
       : route.workspace!.workspaceUri;
 
   console.log("uri: " + workspaceOrFolderUri);
+  const version = parseVersion(workspaceOrFolderUri.query);
+
   console.log(`Getting authority name ${workspaceOrFolderUri.authority}`);
   const loadUri = workspaceOrFolderUri.with({
     // scheme: 'http',
@@ -218,6 +220,7 @@ export default async function doRoute(
           calledWhen: new Date().toISOString(),
           storageName: storageAccountName,
           accountKey: storageAccountKey,
+          version,
         }
       );
       console.log("Limelight session is created..");
@@ -232,6 +235,7 @@ export default async function doRoute(
       console.log(
         `Starting syncing cx function app files at ${workerHostname}..`
       );
+
       const res = await axios.post(
         `${containerServiceHostname}/limelight/file/sync`,
         {
@@ -239,7 +243,8 @@ export default async function doRoute(
           hostname: workerHostname,
           connStr: storageAccountConnectionString,
           accountKey: storageAccountKey,
-          srcURL: srcURL,
+          srcURL,
+          version,
         }
       );
       console.log(`Cx function app files are synced: ${res}`);
@@ -252,9 +257,9 @@ export default async function doRoute(
     try {
       console.log(`Starting code server at ${workerHostname}..`);
       const { data } = await axios.post(
-        `https://${workerHostname}:443/limelight/code-server/start`,
+        `https://${workerHostname}:443/limelight-worker/code-server/start`,
         {
-          tunnelId: tunnel.tunnelId,
+          tunnelId: tunnel.name,
           hostToken: tunnel.token,
           tunnelName: tunnel.name,
           cluster: tunnel.clusterId,
@@ -264,7 +269,7 @@ export default async function doRoute(
       setInterval(async () => {
         // const status = await axios.get('http://localhost:443/ping');
         const status = await axios.get(
-          `https://${workerHostname}:443/limelight/pat`
+          `https://${workerHostname}:443/limelight-worker/pat`
         );
         console.log(status);
         localStorage.removeItem(cachedWorkerHostname);
@@ -375,7 +380,17 @@ class FailingWebSocketFactory implements IWebSocketFactory {
   }
 }
 
-function parseStorageAccountDetails(storageAccountConnectionString: any) {
+function parseVersion(version: string) {
+  const versionParts = version.split("=");
+  if (!versionParts || versionParts.length < 2) {
+    throw new Error(`please specify the code version correctly!`);
+  }
+  return versionParts[1];
+}
+function parseStorageAccountDetails(storageAccountConnectionString: string) {
+  if (!storageAccountConnectionString) {
+    throw new Error(`Storage account connection string is undefined!`);
+  }
   const connectionStringParts = storageAccountConnectionString.split(";");
   const accountNameParts = connectionStringParts[1].split("=");
   const accountKeyParts = connectionStringParts[2].substring(
@@ -416,7 +431,6 @@ async function getFunctionAppStorageAccountConnectionString(
   functionAppName: string,
   managementAccessToken: any
 ) {
-  console.log("HERE");
   console.log("Bearer " + managementAccessToken);
   // SUBSCRIPTION SHOULD BE SUBSCRIPTION ID
   const url = `https://management.azure.com/subscriptions/${subscription}/resourceGroups/${resourceGroup}/providers/Microsoft.Web/sites/${functionAppName}/config/appsettings/list?api-version=2021-02-01`;
