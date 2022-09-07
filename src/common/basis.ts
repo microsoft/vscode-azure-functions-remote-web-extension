@@ -142,6 +142,7 @@ export namespace Basis {
 
   export async function createTunnelWithPort(
     accessToken: string,
+    tunnelName: string,
     portNumber: number
   ): Promise<any> {
     return pRetry(
@@ -159,7 +160,7 @@ export namespace Basis {
         };
 
         const tunnel: Tunnel = {
-          name: makeString(),
+          name: tunnelName || makeString(),
           ports: [{ portNumber: portNumber, protocol: "auto" }],
           accessControl: {
             entries: [tunnelAccessControlEntry],
