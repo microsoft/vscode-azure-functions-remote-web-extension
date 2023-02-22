@@ -55,6 +55,7 @@
     "constants-browserify": "^1.0.0",
     "exponential-backoff": "^3.1.1",
     "graceful-fs": "^4.2.10",
+    "js-md5": "^0.7.3",
     "lodash": "^4.17.21",
     "net": "^1.0.2",
     "node-rsa": "^1.1.1",
@@ -70,6 +71,7 @@
   },
   "devDependencies": {
     "@types/async-retry": "^1.4.5",
+    "@types/js-md5": "^0.7.0",
     "@types/mocha": "^9.1.1",
     "@types/node": "^18.7.7",
     "@types/uuid": "^8.3.4",

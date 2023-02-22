@@ -43,7 +43,9 @@ import { Basis } from "../common/basis";
 import { showProgress } from "./util/progress";
 import { activate } from "../extension";
 import pRetry from "p-retry";
-import { createHash } from "crypto";
+// import { createHash } from "crypto";
+// import * as crypto from 'crypto';
+import * as md5 from 'js-md5';
 import { backOff, BackoffOptions } from "exponential-backoff";
 // import * as vscode from 'vscode';
 
@@ -350,26 +352,26 @@ export default async function doRoute(
     };
     return;
   }
-  const manager = new ConnectionManager({
-    tunnel: match.tunnel,
-    port: tunnel.remotePort,
-    productInfo: extra.version,
-    basis: match.client,
-    installExtensionsOnRemote: [
-      "ms-azuretools.vscode-azurefunctions",
-      "humao.rest-client",
-      "ms-python.python",
-    ],
-  });
+  // const manager = new ConnectionManager({
+  //   tunnel: match.tunnel,
+  //   port: tunnel.remotePort,
+  //   productInfo: extra.version,
+  //   basis: match.client,
+  //   installExtensionsOnRemote: [
+  //     "ms-azuretools.vscode-azurefunctions",
+  //     "humao.rest-client",
+  //     "ms-python.python",
+  //   ],
+  // });
 
-  extra.registerLoopbackResponder(manager.loopbackHandler);
+  // extra.registerLoopbackResponder(manager.loopbackHandler);
 
-  manager.onStartConnecting(() => {
-    manager.onLog((log) => {
-      extra.workbench!.logger.log(log.level, log.line);
-    });
-    showProgress(extra.workbench!, manager, "hello");
-  });
+  // manager.onStartConnecting(() => {
+  //   manager.onLog((log) => {
+  //     extra.workbench!.logger.log(log.level, log.line);
+  //   });
+  //   showProgress(extra.workbench!, manager, "hello");
+  // });
 
   route.workbenchOptions = {
     ...route.workbenchOptions,
@@ -551,9 +553,7 @@ async function isFunctionAppNew(
 }
 
 const createFingerprint = (functionAppName: string, username: string): string =>
-  createHash('sha256')
-    .update(`${functionAppName}:${username}`)
-    .digest('hex');
+  md5(`${functionAppName + username}`);
 
 const createUrl = (baseUrl: string, endpoint: string = "", port?: number): URL => {
   const url = new URL(endpoint, baseUrl);
