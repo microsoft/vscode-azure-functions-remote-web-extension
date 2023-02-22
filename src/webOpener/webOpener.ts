@@ -40,8 +40,7 @@ import {
   URI,
 } from "vs/workbench/workbench.web.main";
 import { Basis } from "../common/basis";
-// import { showProgress } from "./util/progress";
-// import * as vscode from 'vscode';
+import { showProgress } from "./util/progress";
 import { activate } from "../extension";
 import pRetry from "p-retry";
 import { createHash } from "crypto";
@@ -175,37 +174,37 @@ export default async function doRoute(
     await postRequest(agentUrl, agentBody);
 
 
-  // const isNewApp = await isFunctionAppNew(
-  //   subscription,
-  //   resourceGroup,
-  //   functionAppName,
-  //   managementAccessToken
-  // );
+  const isNewApp = await isFunctionAppNew(
+    subscription,
+    resourceGroup,
+    functionAppName,
+    managementAccessToken
+  );
 
-  // // Only get connection string if function app already exists
-  // let storageAccountConnectionString,
-  //   storageAccountName,
-  //   storageAccountKey,
-  //   srcURL;
-  // if (!isNewApp) {
-  //   console.log(`Function app ${functionAppName} is an existing app`);
-  //   storageAccountConnectionString =
-  //     await getFunctionAppStorageAccountConnectionString(
-  //       subscription,
-  //       resourceGroup,
-  //       functionAppName,
-  //       managementAccessToken
-  //     );
-  //   srcURL = await getFunctionAppSrcURL(
-  //     subscription,
-  //     resourceGroup,
-  //     functionAppName,
-  //     managementAccessToken
-  //   );
-  //   [storageAccountName, storageAccountKey] = parseStorageAccountDetails(
-  //     storageAccountConnectionString
-  //   );
-  // }
+  // Only get connection string if function app already exists
+  let storageAccountConnectionString,
+    storageAccountName,
+    storageAccountKey,
+    srcURL;
+  if (!isNewApp) {
+    console.log(`Function app ${functionAppName} is an existing app`);
+    storageAccountConnectionString =
+      await getFunctionAppStorageAccountConnectionString(
+        subscription,
+        resourceGroup,
+        functionAppName,
+        managementAccessToken
+      );
+    srcURL = await getFunctionAppSrcURL(
+      subscription,
+      resourceGroup,
+      functionAppName,
+      managementAccessToken
+    );
+    [storageAccountName, storageAccountKey] = parseStorageAccountDetails(
+      storageAccountConnectionString
+    );
+  }
 
   let tunnel;
   const rawTunnelDef = localStorage.getItem(cachedTunnelDefinition);
@@ -261,8 +260,8 @@ export default async function doRoute(
         {
           // TODO: pass in custom container app name, if not exist, create one with the name otherwise return the info
           calledWhen: new Date().toISOString(),
-          // storageName: storageAccountName,
-          // accountKey: storageAccountKey,
+          storageName: storageAccountName,
+          accountKey: storageAccountKey,
           version,
         }
       );
@@ -284,9 +283,9 @@ export default async function doRoute(
         {
           username,
           hostname: workerHostname,
-          // connStr: storageAccountConnectionString,
-          // accountKey: storageAccountKey,
-          // srcURL,
+          connStr: storageAccountConnectionString,
+          accountKey: storageAccountKey,
+          srcURL,
           version,
         }
       );
@@ -325,76 +324,76 @@ export default async function doRoute(
     }
   }
 
-  // let match: IMatchedTunnel;
-  // try {
-  //   const m = await getMatchingSessionForTunnelName({
-  //     userAgent: USER_AGENT,
-  //     sessions: await getMicrosoftAuthSessions(extra.microsoftAuthentication),
-  //     name: tunnel.name,
-  //   });
+  let match: IMatchedTunnel;
+  try {
+    const m = await getMatchingSessionForTunnelName({
+      userAgent: USER_AGENT,
+      sessions: await getMicrosoftAuthSessions(extra.microsoftAuthentication),
+      name: tunnel.name,
+    });
 
-  //   if (!m) {
-  //     await extra.microsoftAuthentication.getSessions(
-  //       BasisClient.BASIS_SCOPES,
-  //       {
-  //         forceNewSession: false,
-  //       }
-  //     );
-  //     return await new Promise(() => {});
-  //   }
-  //   match = m;
-  // } catch (e) {
-  //   route.workbenchOptions = {
-  //     ...route.workbenchOptions,
-  //     remoteAuthority: loadUri.authority,
-  //     webSocketFactory: new FailingWebSocketFactory(e as Error),
-  //   };
-  //   return;
-  // }
-  // const manager = new ConnectionManager({
-  //   tunnel: match.tunnel,
-  //   port: tunnel.remotePort,
-  //   productInfo: extra.version,
-  //   basis: match.client,
-  //   installExtensionsOnRemote: [
-  //     "ms-azuretools.vscode-azurefunctions",
-  //     "humao.rest-client",
-  //     "ms-python.python",
-  //   ],
-  // });
+    if (!m) {
+      await extra.microsoftAuthentication.getSessions(
+        BasisClient.BASIS_SCOPES,
+        {
+          forceNewSession: false,
+        }
+      );
+      return await new Promise(() => {});
+    }
+    match = m;
+  } catch (e) {
+    route.workbenchOptions = {
+      ...route.workbenchOptions,
+      remoteAuthority: loadUri.authority,
+      webSocketFactory: new FailingWebSocketFactory(e as Error),
+    };
+    return;
+  }
+  const manager = new ConnectionManager({
+    tunnel: match.tunnel,
+    port: tunnel.remotePort,
+    productInfo: extra.version,
+    basis: match.client,
+    installExtensionsOnRemote: [
+      "ms-azuretools.vscode-azurefunctions",
+      "humao.rest-client",
+      "ms-python.python",
+    ],
+  });
 
-  // extra.registerLoopbackResponder(manager.loopbackHandler);
+  extra.registerLoopbackResponder(manager.loopbackHandler);
 
-  // manager.onStartConnecting(() => {
-  //   manager.onLog((log) => {
-  //     extra.workbench!.logger.log(log.level, log.line);
-  //   });
-  //   showProgress(extra.workbench!, manager, "hello");
-  // });
+  manager.onStartConnecting(() => {
+    manager.onLog((log) => {
+      extra.workbench!.logger.log(log.level, log.line);
+    });
+    showProgress(extra.workbench!, manager, "hello");
+  });
 
-//   route.workbenchOptions = {
-//     ...route.workbenchOptions,
-//     // webSocketFactory: new BasisWebSocketFactory(manager),
-//     resourceUriProvider: (uri: URI): URI =>
-//       uri.with({
-//         scheme: window.location.protocol.slice(0, -1),
-//         authority: window.location.host,
-//         path: `/loopback`,
-//         query: new URLSearchParams({ uri: uri.toString() }).toString(),
-//       }),
-//     productConfiguration: {
-//       extensionAllowedProposedApi: ["ms-toolsai.vscode-ai-remote-web"],
-//       extensionEnabledApiProposals: {
-//         "ms-toolsai.vscode-ai-remote-web": ["resolvers"],
-//       },
-//     },
-//     windowIndicator: {
-//       label: `Remote Azure Function CI: "hello"`,
-//       tooltip: `Remote Azure Function CI: "hello"`,
-//       onDidChange: () => ({ dispose: () => undefined }),
-//     },
-//     remoteAuthority: loadUri.authority,
-//   };
+  route.workbenchOptions = {
+    ...route.workbenchOptions,
+    // webSocketFactory: new BasisWebSocketFactory(manager),
+    resourceUriProvider: (uri: URI): URI =>
+      uri.with({
+        scheme: window.location.protocol.slice(0, -1),
+        authority: window.location.host,
+        path: `/loopback`,
+        query: new URLSearchParams({ uri: uri.toString() }).toString(),
+      }),
+    productConfiguration: {
+      extensionAllowedProposedApi: ["ms-toolsai.vscode-ai-remote-web"],
+      extensionEnabledApiProposals: {
+        "ms-toolsai.vscode-ai-remote-web": ["resolvers"],
+      },
+    },
+    windowIndicator: {
+      label: `Remote Azure Function CI: "hello"`,
+      tooltip: `Remote Azure Function CI: "hello"`,
+      onDidChange: () => ({ dispose: () => undefined }),
+    },
+    remoteAuthority: loadUri.authority,
+  };
 
   route!.onDidCreateWorkbench!.runCommands = [
     {
@@ -430,18 +429,19 @@ function parseVersion(version: string) {
   }
   return versionParts[1];
 }
-// function parseStorageAccountDetails(storageAccountConnectionString: string) {
-//   if (!storageAccountConnectionString) {
-//     throw new Error(`Storage account connection string is undefined!`);
-//   }
-//   const connectionStringParts = storageAccountConnectionString.split(";");
-//   const accountNameParts = connectionStringParts[1].split("=");
-//   const accountKeyParts = connectionStringParts[2].substring(
-//     connectionStringParts[2].indexOf("=") + 1
-//   );
 
-//   return [accountNameParts[1], accountKeyParts];
-// }
+function parseStorageAccountDetails(storageAccountConnectionString: string) {
+  if (!storageAccountConnectionString) {
+    throw new Error(`Storage account connection string is undefined!`);
+  }
+  const connectionStringParts = storageAccountConnectionString.split(";");
+  const accountNameParts = connectionStringParts[1].split("=");
+  const accountKeyParts = connectionStringParts[2].substring(
+    connectionStringParts[2].indexOf("=") + 1
+  );
+
+  return [accountNameParts[1], accountKeyParts];
+}
 
 function parseFunctionAppDetails(workspaceOrFolderUri: URI) {
   if (
@@ -468,87 +468,87 @@ function parseFunctionAppDetails(workspaceOrFolderUri: URI) {
   return { subscription, resourceGroup, functionAppName, username };
 }
 
-// async function getFunctionAppStorageAccountConnectionString(
-//   subscription: string,
-//   resourceGroup: string,
-//   functionAppName: string,
-//   managementAccessToken: any
-// ) {
-//   console.log("Bearer " + managementAccessToken);
-//   // SUBSCRIPTION SHOULD BE SUBSCRIPTION ID
-//   const url = `https://management.azure.com/subscriptions/${subscription}/resourceGroups/${resourceGroup}/providers/Microsoft.Web/sites/${functionAppName}/config/appsettings/list?api-version=2021-02-01`;
-//   console.log(`Retrieving function app storage account connection string...`);
-//   const { data } = await axios.post(url, "", {
-//     headers: {
-//       Authorization: "Bearer " + managementAccessToken,
-//     },
-//   });
-//   const connStr = data["properties"]["AzureWebJobsStorage"];
-//   console.log(`Function app storage account connection string retrieved.`);
-//   return connStr;
-// }
+async function getFunctionAppStorageAccountConnectionString(
+  subscription: string,
+  resourceGroup: string,
+  functionAppName: string,
+  managementAccessToken: any
+) {
+  console.log("Bearer " + managementAccessToken);
+  // SUBSCRIPTION SHOULD BE SUBSCRIPTION ID
+  const url = `https://management.azure.com/subscriptions/${subscription}/resourceGroups/${resourceGroup}/providers/Microsoft.Web/sites/${functionAppName}/config/appsettings/list?api-version=2021-02-01`;
+  console.log(`Retrieving function app storage account connection string...`);
+  const { data } = await axios.post(url, "", {
+    headers: {
+      Authorization: "Bearer " + managementAccessToken,
+    },
+  });
+  const connStr = data["properties"]["AzureWebJobsStorage"];
+  console.log(`Function app storage account connection string retrieved.`);
+  return connStr;
+}
 
-// async function getFunctionAppSrcURL(
-//   subscription: string,
-//   resourceGroup: string,
-//   functionAppName: string,
-//   managementAccessToken: any
-// ) {
-//   // SUBSCRIPTION SHOULD BE SUBSCRIPTION ID
-//   const url = `https://management.azure.com/subscriptions/${subscription}/resourceGroups/${resourceGroup}/providers/Microsoft.Web/sites/${functionAppName}/config/appsettings/list?api-version=2021-02-01`;
-//   console.log(`Retrieving function app src url...`);
-//   const { data } = await axios.post(url, "", {
-//     headers: {
-//       Authorization: "Bearer " + managementAccessToken,
-//     },
-//   });
-//   const srcURL = data["properties"]["WEBSITE_RUN_FROM_PACKAGE"];
-//   console.log(`Function app source URL retrieved. ` + srcURL);
-//   return srcURL;
-// }
+async function getFunctionAppSrcURL(
+  subscription: string,
+  resourceGroup: string,
+  functionAppName: string,
+  managementAccessToken: any
+) {
+  // SUBSCRIPTION SHOULD BE SUBSCRIPTION ID
+  const url = `https://management.azure.com/subscriptions/${subscription}/resourceGroups/${resourceGroup}/providers/Microsoft.Web/sites/${functionAppName}/config/appsettings/list?api-version=2021-02-01`;
+  console.log(`Retrieving function app src url...`);
+  const { data } = await axios.post(url, "", {
+    headers: {
+      Authorization: "Bearer " + managementAccessToken,
+    },
+  });
+  const srcURL = data["properties"]["WEBSITE_RUN_FROM_PACKAGE"];
+  console.log(`Function app source URL retrieved. ` + srcURL);
+  return srcURL;
+}
 
-// async function getMicrosoftAuthSessions(
-//   microsoftAuthentication: IMicrosoftAuthentication
-// ): Promise<IAuthenticationSession[]> {
-//   const auth = await microsoftAuthentication.getSessions(
-//     BasisClient.BASIS_SCOPES
-//   );
-//   return auth.map((s) => {
-//     return {
-//       id: s.id,
-//       getAccessToken: s.getAccessToken,
-//       provider: "microsoft",
-//     };
-//   });
-// }
+async function getMicrosoftAuthSessions(
+  microsoftAuthentication: IMicrosoftAuthentication
+): Promise<IAuthenticationSession[]> {
+  const auth = await microsoftAuthentication.getSessions(
+    BasisClient.BASIS_SCOPES
+  );
+  return auth.map((s) => {
+    return {
+      id: s.id,
+      getAccessToken: s.getAccessToken,
+      provider: "microsoft",
+    };
+  });
+}
 
-// async function isFunctionAppNew(
-//   subscription: string,
-//   resourceGroup: string,
-//   functionAppName: string,
-//   managementAccessToken: string
-// ) {
-//   console.log(`Determining if ${functionAppName} is new`);
-//   const url = `https://management.azure.com/subscriptions/${subscription}/resourceGroups/${resourceGroup}/providers/Microsoft.Web/sites/${functionAppName}?api-version=2021-02-01`;
+async function isFunctionAppNew(
+  subscription: string,
+  resourceGroup: string,
+  functionAppName: string,
+  managementAccessToken: string
+) {
+  console.log(`Determining if ${functionAppName} is new`);
+  const url = `https://management.azure.com/subscriptions/${subscription}/resourceGroups/${resourceGroup}/providers/Microsoft.Web/sites/${functionAppName}?api-version=2021-02-01`;
 
-//   // checking to see if func app exists
-//   try {
-//     const { data } = await axios.get(url, {
-//       headers: {
-//         Authorization: "Bearer " + managementAccessToken,
-//       },
-//     });
-//     console.log(data);
+  // checking to see if func app exists
+  try {
+    const { data } = await axios.get(url, {
+      headers: {
+        Authorization: "Bearer " + managementAccessToken,
+      },
+    });
+    console.log(data);
 
-//     return false;
+    return false;
 
-//     // error means no such app exists in storage
-//   } catch (error) {
-//     // console.log("new func app");
-//     console.log(error);
-//     return true;
-//   }
-// }
+    // error means no such app exists in storage
+  } catch (error) {
+    // console.log("new func app");
+    console.log(error);
+    return true;
+  }
+}
 
 const createFingerprint = (functionAppName: string, username: string): string =>
   createHash('sha256')
