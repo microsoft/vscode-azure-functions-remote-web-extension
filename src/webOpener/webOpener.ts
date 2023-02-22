@@ -147,7 +147,7 @@ export default async function doRoute(
     //   'api-version': '2023-02-01'
     // };
 
-    const controllerRoleBaseUrl = 'http://localhost:3000';
+    const controllerRoleBaseUrl = 'http://localhost/';
     const controllerRoleEndpoint = 'post/test';
     const controllerRoleBody = {
       'info': 'myInfo'
@@ -164,7 +164,7 @@ export default async function doRoute(
     //   'tunnelId': 'abc123'
     // };
 
-    const agentBaseUrl = 'http://localhost:3000';
+    const agentBaseUrl = 'http://localhost/';
     const agentEndpoint = 'post/test';
     const agentBody = {
       'tunnelId': 'abc123'
