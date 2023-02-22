@@ -19,7 +19,7 @@ export async function activate(context: vscode.ExtensionContext) {
                       <div class="main"> 
                           <div>Welcome to Project Limelight!</div>
                           <div>1. Create a new function app!<div>
-                          <div>2. Edit an existing funtion app<div>
+                          <div>2. Edit an existing function app<div>
                           <br></br>
                           <div>Create or edit a function app, and hit deploy once you're ready. Your app will show up in your storage account in your user-specific folder<div>
                       </div>
@@ -31,19 +31,17 @@ export async function activate(context: vscode.ExtensionContext) {
     }
 
     context.subscriptions.push(
-        vscode.commands.registerCommand('mypanel.start', (new_func_app: Boolean) => {
+        vscode.commands.registerCommand('mypanel.start', () => {
             // Create and show panel
-            if (new_func_app == true) {
-                const panel = vscode.window.createWebviewPanel(
-                    'mypanel',  // <--- identifier
-                    'Limelight Welcome', // <--- title
-                    vscode.ViewColumn.One,
-                    {}
-                );
-            
-                // And set its HTML content
-                panel.webview.html = getMyWebviewContent(panel.webview, context);   // <--- HTML
-            }
+            const panel = vscode.window.createWebviewPanel(
+                'mypanel',  // <--- identifier
+                'Limelight Welcome', // <--- title
+                vscode.ViewColumn.One,
+                {}
+            );
+        
+            // And set its HTML content
+            panel.webview.html = getMyWebviewContent(panel.webview, context);   // <--- HTML
         })
     );
 }

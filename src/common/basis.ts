@@ -74,7 +74,7 @@ export namespace Basis {
   ): Promise<Tunnel> {
     const tunnelRequestOptions: TunnelRequestOptions = {
       includePorts: true,
-      scopes: ["host"],
+      // scopes: ["host"],
       tokenScopes: ["host"],
     };
 
