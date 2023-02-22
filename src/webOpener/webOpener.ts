@@ -14,7 +14,7 @@ import axios from "axios";
 import {
   BasisClient,
   BasisWebSocketFactory,
-  ConnectionManager,
+  // ConnectionManager,
   getMatchingSessionForTunnelName,
   IAuthenticationSession,
   IMatchedTunnel,
@@ -308,58 +308,58 @@ export default async function doRoute(
     };
     return;
   }
-  const manager = new ConnectionManager({
-    tunnel: match.tunnel,
-    port: tunnel.remotePort,
-    productInfo: extra.version,
-    basis: match.client,
-    installExtensionsOnRemote: [
-      "ms-azuretools.vscode-azurefunctions",
-      "humao.rest-client",
-      "ms-python.python",
-    ],
-  });
+  // const manager = new ConnectionManager({
+  //   tunnel: match.tunnel,
+  //   port: tunnel.remotePort,
+  //   productInfo: extra.version,
+  //   basis: match.client,
+  //   installExtensionsOnRemote: [
+  //     "ms-azuretools.vscode-azurefunctions",
+  //     "humao.rest-client",
+  //     "ms-python.python",
+  //   ],
+  // });
 
-  extra.registerLoopbackResponder(manager.loopbackHandler);
+  // extra.registerLoopbackResponder(manager.loopbackHandler);
 
-  manager.onStartConnecting(() => {
-    manager.onLog((log) => {
-      extra.workbench!.logger.log(log.level, log.line);
-    });
-    showProgress(extra.workbench!, manager, "hello");
-  });
+  // manager.onStartConnecting(() => {
+  //   manager.onLog((log) => {
+  //     extra.workbench!.logger.log(log.level, log.line);
+  //   });
+  //   showProgress(extra.workbench!, manager, "hello");
+  // });
 
-  route.workbenchOptions = {
-    ...route.workbenchOptions,
-    webSocketFactory: new BasisWebSocketFactory(manager),
-    resourceUriProvider: (uri: URI): URI =>
-      uri.with({
-        scheme: window.location.protocol.slice(0, -1),
-        authority: window.location.host,
-        path: `/loopback`,
-        query: new URLSearchParams({ uri: uri.toString() }).toString(),
-      }),
-    productConfiguration: {
-      extensionAllowedProposedApi: ["ms-toolsai.vscode-ai-remote-web"],
-      extensionEnabledApiProposals: {
-        "ms-toolsai.vscode-ai-remote-web": ["resolvers"],
-      },
-    },
-    windowIndicator: {
-      label: `Remote Azure Function CI: "hello"`,
-      tooltip: `Remote Azure Function CI: "hello"`,
-      onDidChange: () => ({ dispose: () => undefined }),
-    },
-    remoteAuthority: loadUri.authority,
-  };
+  // route.workbenchOptions = {
+  //   ...route.workbenchOptions,
+  //   webSocketFactory: new BasisWebSocketFactory(manager),
+  //   resourceUriProvider: (uri: URI): URI =>
+  //     uri.with({
+  //       scheme: window.location.protocol.slice(0, -1),
+  //       authority: window.location.host,
+  //       path: `/loopback`,
+  //       query: new URLSearchParams({ uri: uri.toString() }).toString(),
+  //     }),
+  //   productConfiguration: {
+  //     extensionAllowedProposedApi: ["ms-toolsai.vscode-ai-remote-web"],
+  //     extensionEnabledApiProposals: {
+  //       "ms-toolsai.vscode-ai-remote-web": ["resolvers"],
+  //     },
+  //   },
+  //   windowIndicator: {
+  //     label: `Remote Azure Function CI: "hello"`,
+  //     tooltip: `Remote Azure Function CI: "hello"`,
+  //     onDidChange: () => ({ dispose: () => undefined }),
+  //   },
+  //   remoteAuthority: loadUri.authority,
+  // };
 
-  route!.onDidCreateWorkbench!.runCommands = [
-    {
-      command: "mypanel.start",
-      args: [isNewApp],
-    },
-  ];
-  route.workspace = { folderUri: loadUri };
+  // route!.onDidCreateWorkbench!.runCommands = [
+  //   {
+  //     command: "mypanel.start",
+  //     args: [isNewApp],
+  //   },
+  // ];
+  // route.workspace = { folderUri: loadUri };
 }
 
 class FailingWebSocketFactory implements IWebSocketFactory {

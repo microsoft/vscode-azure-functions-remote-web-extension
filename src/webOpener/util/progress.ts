@@ -24,29 +24,29 @@ async function handleLogsToShowProgress(progress: IProgress<IProgressStep>, mana
     return new Promise<void>((resolve, reject) => {
         dispose.push(
             manager.onLog((log) => {
-                if (log.level === LogLevel.Info) {
-                    progress.report({ message: log.line });
-                }
+                // if (log.level === LogLevel.Info) {
+                //     progress.report({ message: log.line });
+                // }
 
-                if (log.line.includes('Downloading VS Code server')) {
-                    progress.report({ increment: 0, total: 100 });
-                }
+                // if (log.line.includes('Downloading VS Code server')) {
+                //     progress.report({ increment: 0, total: 100 });
+                // }
 
-                const downloadProgress = log.line.match(/.*server download progress.* \(((\d+?)\%)\)/);
-                if (downloadProgress) {
-                    const [, percentageStr] = downloadProgress;
-                    const percentage = parseInt(percentageStr);
-                    progress.report({
-                        message: 'Downloading VS Code server...',
-                        increment: percentage - lastDownloadPercent,
-                        total: 100
-                    });
-                    lastDownloadPercent = percentage;
-                }
+                // const downloadProgress = log.line.match(/.*server download progress.* \(((\d+?)\%)\)/);
+                // if (downloadProgress) {
+                //     const [, percentageStr] = downloadProgress;
+                //     const percentage = parseInt(percentageStr);
+                //     progress.report({
+                //         message: 'Downloading VS Code server...',
+                //         increment: percentage - lastDownloadPercent,
+                //         total: 100
+                //     });
+                //     lastDownloadPercent = percentage;
+                // }
 
-                if (log.line.includes('Setting up server')) {
-                    progress.report({ message: log.line, increment: undefined, total: undefined });
-                }
+                // if (log.line.includes('Setting up server')) {
+                //     progress.report({ message: log.line, increment: undefined, total: undefined });
+                // }
             })
         );
 
