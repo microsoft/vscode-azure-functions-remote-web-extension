@@ -46,7 +46,7 @@ import { activate } from "../extension";
 import pRetry from "p-retry";
 import { createHash } from "crypto";
 import { backOff, BackoffOptions } from "exponential-backoff";
-import * as vscode from 'vscode';
+// import * as vscode from 'vscode';
 
 export const BASIS_SCOPES = [
   `${TunnelServiceProperties.production.serviceAppId}/.default`,
@@ -139,16 +139,40 @@ export default async function doRoute(
     const fingerprint = createFingerprint(functionAppName, username);
     console.log("Fingerprint formed.");
   
-    // Call ARM API, ControllerRole
-    const controllerRoleBaseUrl = 'https://management.azure.com';
-    const controllerRoleEndpoint = '/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Web/sites/{name}/devtunnel/{fingerprint}?api-version=yyyy-mm-dd';
-    const controllerRoleParameters = {
-      'api-version': '2023-02-01'
-    }
-    const controllerRoleUrl = createUrl(controllerRoleBaseUrl, controllerRoleEndpoint);
-    await postRequest(controllerRoleUrl, controllerRoleParameters);
+    // Call ARM API, ControllerRole to get TunnelID from created DevTunnel
+    // const controllerRoleBaseUrl = 'https://management.azure.com';
+    // const controllerRoleEndpoint = '/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Web/sites/{name}/devtunnel/{fingerprint}?api-version=yyyy-mm-dd';
+    // const controllerRoleParameters = {
+    //   'api-version': '2023-02-01'
+    // };
+
+    const controllerRoleBaseUrl = 'http://localhost:3000';
+    const controllerRoleEndpoint = 'post/test';
+    const controllerRoleBody = {
+      'info': 'myInfo'
+    };
+    const controllerRolePort = 3000;
+
+    const controllerRoleUrl = createUrl(controllerRoleBaseUrl, controllerRoleEndpoint, controllerRolePort);
+    let tunnelID = await postRequest(controllerRoleUrl, controllerRoleBody);
+
+    // Call Limelight Agent API
+    // const agentBaseUrl = 'functionappname.azurewebsites.net';
+    // const agentEndpoints = '/dev-session';
+    // const agentParameters = {
+    //   'tunnelId': 'abc123'
+    // };
+
+    const agentBaseUrl = 'http://localhost:3000';
+    const agentEndpoint = 'post/test';
+    const agentBody = {
+      'tunnelId': 'abc123'
+    };
+    const agentPort = 3000;
 
 
+    const agentUrl = createUrl(agentBaseUrl, agentEndpoint, agentPort);
+    await postRequest(agentUrl, agentBody);
 
 
   // const isNewApp = await isFunctionAppNew(
@@ -531,13 +555,17 @@ const createFingerprint = (functionAppName: string, username: string): string =>
     .update(`${functionAppName}:${username}`)
     .digest('hex');
 
-const createUrl = (baseUrl: string, endpoint: string = "", parameters: { [key: string]: any } = {}): string => {
+const createUrl = (baseUrl: string, endpoint: string = "", port?: number): URL => {
   const url = new URL(endpoint, baseUrl);
-  Object.keys(parameters).forEach((key) => {
-    url.searchParams.append(key, parameters[key]);
-  });
+  if (port) {
+    url.port = port.toString();
+  }
 
-  return url.toString();
+  // Object.keys(parameters).forEach((key) => {
+  //   url.searchParams.append(key, parameters[key]);
+  // });
+
+  return url;
 };
 
 // Using npm's exponential-backoff
@@ -546,17 +574,17 @@ export async function getRequest(requestUrl: string) {
 		await backOff(() => axios.get(requestUrl.toString()), backoffOptions);
 	} catch (error) {
 		console.error(`Failed after ${backoffOptions.numOfAttempts} attempts: ${error}`);
-		vscode.window.showErrorMessage(`Request Failed - ${error}`);
+		// vscode.window.showErrorMessage(`Request Failed - ${error}`);
 	}
 }
 
 // Using npm's exponential-backoff
-export async function postRequest(requestUrl: string, body: any) {
+export async function postRequest(requestUrl: URL, requestBody: any) {
 	try {
-		await backOff(() => axios.post(requestUrl.toString(), body), backoffOptions);
+		return await backOff(() => axios.post(requestUrl.toString(), requestBody), backoffOptions);
 	} catch (error) {
 		console.error(`Failed after ${backoffOptions.numOfAttempts} attempts: ${error}`);
-		vscode.window.showErrorMessage(`Request Failed - ${error}`);
+		// vscode.window.showErrorMessage(`Request Failed - ${error}`);
 	}
 }
 
